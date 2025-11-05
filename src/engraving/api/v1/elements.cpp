@@ -22,6 +22,8 @@
 
 #include "elements.h"
 
+#include <algorithm>
+
 #include "engraving/dom/chord.h"
 #include "engraving/dom/guitarbend.h"
 #include "engraving/dom/measure.h"
@@ -390,6 +392,79 @@ void Chord::remove(apiv1::EngravingItem* wrapped)
     } else {
         chord()->score()->deleteItem(s);     // Create undo op and remove the element.
     }
+}
+
+QQmlListProperty<Spanner> Measure::voltas()
+{
+    updateVoltasCache();
+    return QQmlListProperty<Spanner>(this, this, &Measure::voltaCount, &Measure::voltaAt);
+}
+
+qsizetype Measure::voltaCount(QQmlListProperty<Spanner>* list)
+{
+    auto* measureWrapper = static_cast<Measure*>(list->data);
+    return measureWrapper ? static_cast<qsizetype>(measureWrapper->m_cachedVoltas.size()) : 0;
+}
+
+Spanner* Measure::voltaAt(QQmlListProperty<Spanner>* list, qsizetype index)
+{
+    auto* measureWrapper = static_cast<Measure*>(list->data);
+    if (!measureWrapper) {
+        return nullptr;
+    }
+
+    if (index < 0 || static_cast<size_t>(index) >= measureWrapper->m_cachedVoltas.size()) {
+        return nullptr;
+    }
+
+    return wrap<Spanner>(measureWrapper->m_cachedVoltas[static_cast<size_t>(index)], Ownership::SCORE);
+}
+
+void Measure::updateVoltasCache() const
+{
+    m_cachedVoltas.clear();
+
+    const mu::engraving::Measure* muMeasure = measure();
+    if (!muMeasure) {
+        return;
+    }
+
+    const mu::engraving::Score* muScore = muMeasure->score();
+    if (!muScore) {
+        return;
+    }
+
+    const int startTick = muMeasure->tick().ticks();
+    const int endTick = muMeasure->endTick().ticks() - 1;
+
+    if (endTick < startTick) {
+        return;
+    }
+
+    const auto& intervals = muScore->spannerMap().findOverlapping(startTick, endTick);
+    for (const auto& interval : intervals) {
+        mu::engraving::Spanner* spanner = interval.value;
+        if (!spanner) {
+            continue;
+        }
+
+        if (spanner->type() != mu::engraving::ElementType::VOLTA) {
+            continue;
+        }
+
+        if (spanner->startMeasure() != muMeasure) {
+            continue;
+        }
+
+        m_cachedVoltas.push_back(spanner);
+    }
+
+    std::sort(m_cachedVoltas.begin(), m_cachedVoltas.end(), [](const mu::engraving::Spanner* lhs, const mu::engraving::Spanner* rhs) {
+        if (lhs->tick() == rhs->tick()) {
+            return lhs < rhs;
+        }
+        return lhs->tick() < rhs->tick();
+    });
 }
 
 EngravingItem* Measure::vspacerUp(int staffIdx)
