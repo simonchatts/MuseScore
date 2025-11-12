@@ -24,6 +24,7 @@
 #include "scoreelement.h"
 
 #include <QQmlListProperty>
+#include <vector>
 
 #include "engraving/dom/engravingitem.h"
 #include "engraving/dom/arpeggio.h"
@@ -1790,6 +1791,9 @@ class Measure : public MeasureBase
     Q_PROPERTY(apiv1::Segment * firstSegment READ firstSegment)
     /// The last segment of this measure
     Q_PROPERTY(apiv1::Segment * lastSegment READ lastSegment)
+    /// Volta spanners starting on this measure.
+    /// \since MuseScore 4.7
+    Q_PROPERTY(QQmlListProperty<apiv1::Spanner> voltas READ voltas)
 
 //       Q_PROPERTY(bool         lineBreak         READ lineBreak   WRITE undoSetLineBreak)
 //       Q_PROPERTY(bool         pageBreak         READ pageBreak   WRITE undoSetPageBreak)
@@ -1846,6 +1850,7 @@ public:
     Measure* mmRest() const { return wrap<Measure>(measure()->mmRest(), Ownership::SCORE); }
 
     QQmlListProperty<Segment> segments() { return wrapContainerProperty<Segment>(this, measure()->segments()); }
+    QQmlListProperty<Spanner> voltas();
     /// \endcond
 
     /// Up spacer for a given staff.
@@ -1880,6 +1885,13 @@ public:
     /// \param staffIdx staff to check if stemless
     /// \since MuseScore 4.6
     Q_INVOKABLE bool stemless(int staffIdx);
+
+private:
+    static qsizetype voltaCount(QQmlListProperty<Spanner>* list);
+    static Spanner* voltaAt(QQmlListProperty<Spanner>* list, qsizetype index);
+    void updateVoltasCache() const;
+
+    mutable std::vector<mu::engraving::Spanner*> m_cachedVoltas;
 };
 
 //---------------------------------------------------------
