@@ -127,6 +127,7 @@ class EngravingApiV1 : public muse::api::ApiObject, public muse::extensions::api
     Q_PROPERTY(apiv1::Enum * LyricsDashSystemStart READ lyricsDashSystemStartEnum CONSTANT)
     Q_PROPERTY(apiv1::Enum * NoteLineEndPlacement READ noteLineEndPlacementEnum CONSTANT)
     Q_PROPERTY(apiv1::Enum * SpannerSegmentType READ spannerSegmentTypeEnum CONSTANT)
+    Q_PROPERTY(apiv1::Enum * VoltaType READ voltaTypeEnum CONSTANT)
     Q_PROPERTY(apiv1::Enum * TiePlacement READ tiePlacementEnum CONSTANT)
     Q_PROPERTY(apiv1::Enum * TieDotsPlacement READ tieDotsPlacementEnum CONSTANT)
     Q_PROPERTY(apiv1::Enum * TimeSigType READ timeSigTypeEnum CONSTANT)
@@ -250,6 +251,7 @@ public:
     apiv1::Enum* lyricsDashSystemStartEnum() const { return api()->get_lyricsDashSystemStartEnum(); }
     apiv1::Enum* noteLineEndPlacementEnum() const { return api()->get_noteLineEndPlacementEnum(); }
     apiv1::Enum* spannerSegmentTypeEnum() const { return api()->get_spannerSegmentTypeEnum(); }
+    apiv1::Enum* voltaTypeEnum() const { return api()->get_voltaTypeEnum(); }
     apiv1::Enum* tiePlacementEnum() const { return api()->get_tiePlacementEnum(); }
     apiv1::Enum* tieDotsPlacementEnum() const { return api()->get_tieDotsPlacementEnum(); }
     apiv1::Enum* timeSigTypeEnum() const { return api()->get_timeSigTypeEnum(); }

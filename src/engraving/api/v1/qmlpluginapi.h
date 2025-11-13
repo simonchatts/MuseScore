@@ -385,6 +385,9 @@ public:
     /// Contains mu::engraving::SpannerSegmentType enumeration values
     /// \since MuseScore 4.6
     DECLARE_API_ENUM(SpannerSegmentType, spannerSegmentTypeEnum, mu::engraving::apiv1::enums::SpannerSegmentType)
+    /// Contains mu::engraving::Volta::Type enumeration values
+    /// \since MuseScore 4.7
+    DECLARE_API_ENUM(VoltaType, voltaTypeEnum, mu::engraving::apiv1::enums::VoltaType)
     /// Contains mu::engraving::TiePlacement enumeration values
     /// \since MuseScore 4.6
     DECLARE_API_ENUM(TiePlacement, tiePlacementEnum, mu::engraving::apiv1::enums::TiePlacement)
