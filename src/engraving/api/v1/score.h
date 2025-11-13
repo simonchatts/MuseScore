@@ -41,6 +41,8 @@ Q_MOC_INCLUDE("engraving/api/v1/selection.h")
 namespace mu::engraving {
 class InstrumentTemplate;
 class Selection;
+class Spanner;
+enum class ElementType : unsigned char;
 }
 
 namespace mu::engraving::apiv1 {
@@ -53,8 +55,29 @@ class System;
 class Selection;
 class Score;
 class Staff;
+class Spanner;
 
 extern Selection* selectionWrap(mu::engraving::Selection* select);
+
+class SpannerListProperty : public QQmlListProperty<Spanner>
+{
+public:
+    SpannerListProperty() = default;
+    explicit SpannerListProperty(Score* score);
+    SpannerListProperty(Score* score, mu::engraving::ElementType filter);
+
+private:
+    struct Context {
+        Score* owner = nullptr;
+        bool hasFilter = false;
+        mu::engraving::ElementType filterType = mu::engraving::ElementType::INVALID;
+    };
+
+    static qsizetype count(QQmlListProperty<Spanner>* list);
+    static Spanner* at(QQmlListProperty<Spanner>* list, qsizetype index);
+
+    Context m_context;
+};
 
 //---------------------------------------------------------
 //   Score
@@ -165,13 +188,19 @@ class Score : public apiv1::ScoreElement, public muse::Injectable
     /// List of systems in this score.
     /// \since MuseScore 4.6
     Q_PROPERTY(QQmlListProperty<apiv1::System> systems READ systems)
+    /// List of score-level spanners stored in the SpannerMap.
+    /// \since MuseScore 4.7
+    Q_PROPERTY(QQmlListProperty<apiv1::Spanner> spanners READ spanners)
 
     muse::Inject<mu::context::IGlobalContext> context = { this };
 
 public:
     /// \cond MS_INTERNAL
     Score(mu::engraving::Score* s, Ownership o = Ownership::SCORE)
-        : ScoreElement(s, o), muse::Injectable(s->iocContext()) {}
+        : ScoreElement(s, o), muse::Injectable(s->iocContext())
+    {
+        m_allSpannersCtx.owner = this;
+    }
 
     mu::engraving::Score* score() { return toScore(e); }
     const mu::engraving::Score* score() const { return toScore(e); }
@@ -345,6 +374,8 @@ public:
     QQmlListProperty<apiv1::Staff> staves();
     QQmlListProperty<apiv1::Page> pages();
     QQmlListProperty<apiv1::System> systems();
+    QQmlListProperty<apiv1::Spanner> spanners();
+    Q_INVOKABLE QQmlListProperty<apiv1::Spanner> spannersOfType(int elementType);
 
     static const mu::engraving::InstrumentTemplate* instrTemplateFromName(const QString& name);   // used by PluginAPI::newScore()
     /// \endcond

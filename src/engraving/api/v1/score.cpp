@@ -28,6 +28,8 @@
 #include "dom/measure.h"
 #include "dom/score.h"
 #include "dom/segment.h"
+#include "dom/spanner.h"
+#include "dom/spannermap.h"
 #include "dom/text.h"
 #include "editing/editsystemlocks.h"
 #include "types/typesconv.h"
@@ -38,6 +40,88 @@
 #include "elements.h"
 
 using namespace mu::engraving::apiv1;
+
+SpannerListProperty::SpannerListProperty(Score* score)
+    : QQmlListProperty<Spanner>(score, &m_context, &SpannerListProperty::count, &SpannerListProperty::at)
+{
+    m_context.owner = score;
+}
+
+SpannerListProperty::SpannerListProperty(Score* score, mu::engraving::ElementType filter)
+    : QQmlListProperty<Spanner>(score, &m_context, &SpannerListProperty::count, &SpannerListProperty::at)
+{
+    m_context.owner = score;
+    m_context.hasFilter = true;
+    m_context.filterType = filter;
+}
+
+qsizetype SpannerListProperty::count(QQmlListProperty<Spanner>* list)
+{
+    auto* ctx = static_cast<Context*>(list->data);
+    if (!ctx || !ctx->owner) {
+        return 0;
+    }
+
+    mu::engraving::Score* nativeScore = ctx->owner->score();
+    if (!nativeScore) {
+        return 0;
+    }
+
+    const auto& spanMap = nativeScore->spannerMap().map();
+    qsizetype total = 0;
+
+    for (const auto& [tick, spanner] : spanMap) {
+        UNUSED(tick);
+
+        if (!spanner) {
+            continue;
+        }
+
+        if (ctx->hasFilter && spanner->type() != ctx->filterType) {
+            continue;
+        }
+
+        ++total;
+    }
+
+    return total;
+}
+
+Spanner* SpannerListProperty::at(QQmlListProperty<Spanner>* list, qsizetype index)
+{
+    auto* ctx = static_cast<Context*>(list->data);
+    if (!ctx || !ctx->owner || index < 0) {
+        return nullptr;
+    }
+
+    mu::engraving::Score* nativeScore = ctx->owner->score();
+    if (!nativeScore) {
+        return nullptr;
+    }
+
+    const auto& spanMap = nativeScore->spannerMap().map();
+    qsizetype current = 0;
+
+    for (const auto& [tick, spanner] : spanMap) {
+        UNUSED(tick);
+
+        if (!spanner) {
+            continue;
+        }
+
+        if (ctx->hasFilter && spanner->type() != ctx->filterType) {
+            continue;
+        }
+
+        if (current == index) {
+            return qobject_cast<Spanner*>(wrap(spanner, Ownership::SCORE));
+        }
+
+        ++current;
+    }
+
+    return nullptr;
+}
 
 Cursor* Score::newCursor()
 {
@@ -260,6 +344,35 @@ QQmlListProperty<Page> Score::pages()
 QQmlListProperty<System> Score::systems()
 {
     return wrapContainerProperty<System>(this, score()->systems());
+}
+
+//---------------------------------------------------------
+//   Score::spanners
+//---------------------------------------------------------
+
+QQmlListProperty<Spanner> Score::spanners()
+{
+    return SpannerListProperty(this);
+}
+
+//---------------------------------------------------------
+//   Score::spannersOfType
+//---------------------------------------------------------
+
+QQmlListProperty<Spanner> Score::spannersOfType(int elementType)
+{
+    using mu::engraving::ElementType;
+
+    if (elementType == int(ElementType::INVALID)) {
+        return spanners();
+    }
+
+    if (elementType <= int(ElementType::INVALID)
+        || elementType >= int(ElementType::ROOT_ITEM)) {
+        return {};
+    }
+
+    return SpannerListProperty(this, static_cast<ElementType>(elementType));
 }
 
 //---------------------------------------------------------

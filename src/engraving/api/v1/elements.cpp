@@ -37,6 +37,8 @@
 #include "engraving/editing/editnote.h"
 #include "engraving/editing/editsystemlocks.h"
 
+#include "engraving/types/types.h"
+
 // api
 #include "apistructs.h"
 #include "part.h"
@@ -649,6 +651,73 @@ bool Staff::isVoiceVisible(int voice)
     return staff()->isVoiceVisible(voice);
 }
 
+QVariantList Volta::endings() const
+{
+    QVariantList result;
+    const auto& endings = volta()->endings();
+    result.reserve(static_cast<int>(endings.size()));
+    for (int ending : endings) {
+        result.append(ending);
+    }
+    return result;
+}
+
+void Volta::setEndings(const QVariantList& endingsList)
+{
+    std::vector<int> endings;
+    endings.reserve(endingsList.size());
+    for (const QVariant& value : endingsList) {
+        bool ok = false;
+        const int ending = value.toInt(&ok);
+        if (ok) {
+            endings.push_back(ending);
+        }
+    }
+
+    volta()->setEndings(endings);
+}
+
+QString Volta::text() const
+{
+    return volta()->text().toQString();
+}
+
+void Volta::setText(const QString& text)
+{
+    volta()->setText(mu::engraving::String::fromQString(text));
+}
+
+int Volta::voltaType() const
+{
+    return static_cast<int>(volta()->voltaType());
+}
+
+void Volta::setVoltaType(int type)
+{
+    using VoltaType = mu::engraving::Volta::Type;
+    const bool valid = type == int(VoltaType::OPEN) || type == int(VoltaType::CLOSED);
+    IF_ASSERT_FAILED(valid) {
+        return;
+    }
+
+    volta()->setVoltaType(static_cast<VoltaType>(type));
+}
+
+bool Volta::hasEnding(int repeat) const
+{
+    return volta()->hasEnding(repeat);
+}
+
+int Volta::firstEnding() const
+{
+    return volta()->firstEnding();
+}
+
+int Volta::lastEnding() const
+{
+    return volta()->lastEnding();
+}
+
 //---------------------------------------------------------
 //   wrap
 ///   \cond PLUGIN_API \private \endcond
@@ -679,6 +748,7 @@ EngravingItem* mu::engraving::apiv1::wrap(mu::engraving::EngravingItem* e, Owner
     API_WRAP(System)
     API_WRAP(Page)
     API_WRAP(SpannerSegment)
+    API_WRAP(Volta)
     API_WRAP(Spanner)
     return wrap<EngravingItem>(e, own);
 
