@@ -49,6 +49,7 @@
 #include "engraving/dom/tremolotwochord.h"
 #include "engraving/dom/tuplet.h"
 #include "engraving/dom/tie.h"
+#include "engraving/dom/volta.h"
 #include "engraving/dom/accidental.h"
 #include "engraving/dom/undo.h"
 
@@ -65,6 +66,7 @@ class Spanner;
 class Staff;
 class System;
 class Tie;
+class Volta;
 class Tuplet;
 class Measure;
 
@@ -2296,6 +2298,46 @@ public:
     Note* endNote() const { return wrap<Note>(tie()->startNote()); }
     bool isInside() const { return tie()->isInside(); }
 
+    /// \endcond
+};
+
+//---------------------------------------------------------
+//   Volta
+///  Provides access to internal mu::engraving::Volta objects.
+///  \since MuseScore 4.7
+//---------------------------------------------------------
+
+class Volta : public Spanner
+{
+    Q_OBJECT
+    /// The play-through numbers assigned to this volta (e.g. [1, 2]).
+    Q_PROPERTY(QVariantList endings READ endings WRITE setEndings)
+    /// The displayed text for this volta.
+    Q_PROPERTY(QString text READ text WRITE setText)
+    /// The volta drawing style, one of PluginAPI::VoltaType values.
+    Q_PROPERTY(int voltaType READ voltaType WRITE setVoltaType)
+
+public:
+    /// \cond MS_INTERNAL
+    Volta(mu::engraving::Volta* volta, Ownership own = Ownership::PLUGIN)
+        : Spanner(volta, own) {}
+
+    mu::engraving::Volta* volta() { return toVolta(e); }
+    const mu::engraving::Volta* volta() const { return toVolta(e); }
+
+    QVariantList endings() const;
+    void setEndings(const QVariantList& endings);
+    QString text() const;
+    void setText(const QString& text);
+    int voltaType() const;
+    void setVoltaType(int type);
+
+    /// Returns whether this volta triggers on the provided repeat count.
+    Q_INVOKABLE bool hasEnding(int repeat) const;
+    /// Returns the smallest ending number assigned to this volta.
+    Q_INVOKABLE int firstEnding() const;
+    /// Returns the largest ending number assigned to this volta.
+    Q_INVOKABLE int lastEnding() const;
     /// \endcond
 };
 

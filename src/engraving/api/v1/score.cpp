@@ -29,6 +29,8 @@
 #include "engraving/dom/measure.h"
 #include "engraving/dom/score.h"
 #include "engraving/dom/segment.h"
+#include "engraving/dom/spanner.h"
+#include "engraving/dom/spannermap.h"
 #include "engraving/dom/text.h"
 
 #include "engraving/types/typesconv.h"
@@ -264,6 +266,39 @@ QQmlListProperty<System> Score::systems()
 }
 
 //---------------------------------------------------------
+//   Score::spanners
+//---------------------------------------------------------
+
+QQmlListProperty<Spanner> Score::spanners()
+{
+    m_allSpannersCtx.owner = this;
+    m_allSpannersCtx.filter.reset();
+    return makeSpannerListProperty(&m_allSpannersCtx);
+}
+
+//---------------------------------------------------------
+//   Score::spannersOfType
+//---------------------------------------------------------
+
+QQmlListProperty<Spanner> Score::spannersOfType(int elementType)
+{
+    using mu::engraving::ElementType;
+
+    if (elementType == int(ElementType::INVALID)) {
+        return spanners();
+    }
+
+    if (elementType <= int(ElementType::INVALID)
+        || elementType >= int(ElementType::ROOT_ITEM)) {
+        return makeSpannerListProperty(nullptr);
+    }
+
+    auto filter = static_cast<ElementType>(elementType);
+    auto* ctx = createSpannerListContext(filter);
+    return makeSpannerListProperty(ctx);
+}
+
+//---------------------------------------------------------
 //   Score::startCmd
 //---------------------------------------------------------
 
@@ -316,4 +351,102 @@ void Score::showElementInScore(apiv1::EngravingItem* wrappedElement, int staffId
         return;
     }
     notation()->interaction()->showItem(wrappedElement->element(), staffIdx);
+}
+
+QQmlListProperty<Spanner> Score::makeSpannerListProperty(SpannerListContext* ctx)
+{
+    return QQmlListProperty<Spanner>(
+        this,
+        ctx,
+        &Score::spannerListCount,
+        &Score::spannerListAt);
+}
+
+qsizetype Score::spannerListCount(QQmlListProperty<Spanner>* list)
+{
+    auto* ctx = static_cast<SpannerListContext*>(list->data);
+    if (!ctx || !ctx->owner) {
+        return 0;
+    }
+
+    return ctx->owner->countSpanners(ctx->filter);
+}
+
+Spanner* Score::spannerListAt(QQmlListProperty<Spanner>* list, qsizetype index)
+{
+    auto* ctx = static_cast<SpannerListContext*>(list->data);
+    if (!ctx || !ctx->owner) {
+        return nullptr;
+    }
+
+    NativeSpanner* span = ctx->owner->spannerAt(ctx->filter, index);
+    if (!span) {
+        return nullptr;
+    }
+
+    return qobject_cast<Spanner*>(wrap(span, Ownership::SCORE));
+}
+
+qsizetype Score::countSpanners(const std::optional<mu::engraving::ElementType>& filter) const
+{
+    const auto& spanMap = score()->spannerMap().map();
+    qsizetype count = 0;
+
+    for (const auto& [tick, spanner] : spanMap) {
+        UNUSED(tick);
+
+        if (!spanner) {
+            continue;
+        }
+
+        if (filter && spanner->type() != *filter) {
+            continue;
+        }
+
+        ++count;
+    }
+
+    return count;
+}
+
+Score::NativeSpanner* Score::spannerAt(const std::optional<mu::engraving::ElementType>& filter,
+                                       qsizetype index) const
+{
+    if (index < 0) {
+        return nullptr;
+    }
+
+    const auto& spanMap = score()->spannerMap().map();
+    qsizetype current = 0;
+
+    for (const auto& [tick, spanner] : spanMap) {
+        UNUSED(tick);
+
+        if (!spanner) {
+            continue;
+        }
+
+        if (filter && spanner->type() != *filter) {
+            continue;
+        }
+
+        if (current == index) {
+            return spanner;
+        }
+
+        ++current;
+    }
+
+    return nullptr;
+}
+
+Score::SpannerListContext* Score::createSpannerListContext(std::optional<mu::engraving::ElementType> filter)
+{
+    auto ctx = std::make_unique<SpannerListContext>();
+    ctx->owner = this;
+    ctx->filter = filter;
+
+    auto* rawCtx = ctx.get();
+    m_spannerListContexts.emplace_back(std::move(ctx));
+    return rawCtx;
 }
