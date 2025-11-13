@@ -38,6 +38,7 @@
 #include "engraving/dom/timesig.h"
 #include "engraving/dom/tremolobar.h"
 #include "engraving/dom/tripletfeel.h"
+#include "engraving/dom/volta.h"
 #include "engraving/types/types.h"
 #include "engraving/rendering/layoutoptions.h"
 
@@ -1389,6 +1390,12 @@ enum class SpannerSegmentType {
     END    = int(mu::engraving::SpannerSegmentType::END),
 };
 Q_ENUM_NS(SpannerSegmentType);
+
+enum class VoltaType {
+    OPEN   = int(mu::engraving::Volta::Type::OPEN),
+    CLOSED = int(mu::engraving::Volta::Type::CLOSED),
+};
+Q_ENUM_NS(VoltaType);
 
 enum class TiePlacement {
     AUTO    = int(mu::engraving::TiePlacement::AUTO),
