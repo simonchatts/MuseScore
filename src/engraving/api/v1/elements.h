@@ -2315,7 +2315,7 @@ public:
     const mu::engraving::Spanner* spanner() const { return toSpanner(e); }
 
     EngravingItem* startElement() const { return wrap(spanner()->startElement()); }
-    EngravingItem* endElement() const { return wrap(spanner()->startElement()); }
+    EngravingItem* endElement() const { return wrap(spanner()->endElement()); }
 
     QQmlListProperty<SpannerSegment> spannerSegments()
     {
