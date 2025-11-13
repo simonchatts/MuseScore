@@ -147,6 +147,7 @@ Enum* PluginAPI::repeatPlayCountPresetEnum = nullptr;
 Enum* PluginAPI::measureNumberPlacementEnum = nullptr;
 Enum* PluginAPI::symIdEnum = nullptr;
 Enum* PluginAPI::cursorEnum = nullptr;
+Enum* PluginAPI::voltaTypeEnum = nullptr;
 
 //---------------------------------------------------------
 //   PluginAPI::registerQmlTypes
@@ -185,6 +186,7 @@ void PluginAPI::registerQmlTypes()
     qmlRegisterAnonymousType<Excerpt>("MuseScore", 3);
     qmlRegisterAnonymousType<Selection>("MuseScore", 3);
     qmlRegisterAnonymousType<Tie>("MuseScore", 3);
+    qmlRegisterAnonymousType<Volta>("MuseScore", 3);
     qmlRegisterAnonymousType<Drumset>("MuseScore", 3);
     qmlRegisterAnonymousType<MeasureBase>("MuseScore", 3);
     qmlRegisterAnonymousType<System>("MuseScore", 3);

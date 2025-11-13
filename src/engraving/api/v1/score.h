@@ -24,6 +24,10 @@
 
 #include "scoreelement.h"
 
+#include <memory>
+#include <optional>
+#include <vector>
+
 #include "modularity/ioc.h"
 #include "context/iglobalcontext.h"
 
@@ -41,6 +45,7 @@ Q_MOC_INCLUDE("engraving/api/v1/selection.h")
 namespace mu::engraving {
 class InstrumentTemplate;
 class Selection;
+class Spanner;
 }
 
 namespace mu::engraving::apiv1 {
@@ -53,6 +58,7 @@ class System;
 class Selection;
 class Score;
 class Staff;
+class Spanner;
 
 extern Selection* selectionWrap(mu::engraving::Selection* select);
 
@@ -165,13 +171,19 @@ class Score : public apiv1::ScoreElement, public muse::Injectable
     /// List of systems in this score.
     /// \since MuseScore 4.6
     Q_PROPERTY(QQmlListProperty<apiv1::System> systems READ systems)
+    /// List of score-level spanners stored in the SpannerMap.
+    /// \since MuseScore 4.7
+    Q_PROPERTY(QQmlListProperty<apiv1::Spanner> spanners READ spanners)
 
     muse::Inject<mu::context::IGlobalContext> context = { this };
 
 public:
     /// \cond MS_INTERNAL
     Score(mu::engraving::Score* s, Ownership o = Ownership::SCORE)
-        : ScoreElement(s, o), muse::Injectable(s->iocContext()) {}
+        : ScoreElement(s, o), muse::Injectable(s->iocContext())
+    {
+        m_allSpannersCtx.owner = this;
+    }
 
     mu::engraving::Score* score() { return toScore(e); }
     const mu::engraving::Score* score() const { return toScore(e); }
@@ -345,6 +357,8 @@ public:
     QQmlListProperty<apiv1::Staff> staves();
     QQmlListProperty<apiv1::Page> pages();
     QQmlListProperty<apiv1::System> systems();
+    QQmlListProperty<apiv1::Spanner> spanners();
+    Q_INVOKABLE QQmlListProperty<apiv1::Spanner> spannersOfType(int elementType);
 
     static const mu::engraving::InstrumentTemplate* instrTemplateFromName(const QString& name);   // used by PluginAPI::newScore()
     /// \endcond
@@ -352,5 +366,21 @@ public:
 private:
     mu::notation::INotationPtr notation() const;
     mu::notation::INotationUndoStackPtr undoStack() const;
+
+    using NativeSpanner = mu::engraving::Spanner;
+
+    struct SpannerListContext {
+        Score* owner = nullptr;
+        std::optional<mu::engraving::ElementType> filter;
+    };
+
+    QQmlListProperty<apiv1::Spanner> makeSpannerListProperty(SpannerListContext* ctx);
+    static qsizetype spannerListCount(QQmlListProperty<apiv1::Spanner>* list);
+    static apiv1::Spanner* spannerListAt(QQmlListProperty<apiv1::Spanner>* list, qsizetype index);
+    qsizetype countSpanners(const std::optional<mu::engraving::ElementType>& filter) const;
+    NativeSpanner* spannerAt(const std::optional<mu::engraving::ElementType>& filter, qsizetype index) const;
+    mutable SpannerListContext m_allSpannersCtx;
+    SpannerListContext* createSpannerListContext(std::optional<mu::engraving::ElementType> filter);
+    mutable std::vector<std::unique_ptr<SpannerListContext>> m_spannerListContexts;
 };
 }
