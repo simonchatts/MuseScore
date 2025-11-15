@@ -29,6 +29,7 @@ SOFTWARE.
 #include <cassert>
 #include <algorithm>
 #include <atomic>
+#include <system_error>
 
 #include "../conf.h"
 #include "../asyncable.h"
@@ -73,7 +74,11 @@ private:
         {
             for (Receiver* r : recs) {
                 if (r->receiver) {
-                    r->receiver->async_disconnect(conn);
+                    try {
+                        r->receiver->async_disconnect(conn);
+                    } catch (const std::system_error&) {
+                        // receiver already deinitialised; nothing else to do
+                    }
                 }
                 delete r;
             }
